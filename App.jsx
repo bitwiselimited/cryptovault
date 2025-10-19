@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
-import CoinCard from './components/CoinCard'
-import Navbar from './components/Navbar'
-import Dashboard from './components/Dashboard'
-import AlertManager from './components/AlertManager'
-import Portfolio from './components/Portfolio'
-import LoginModal from './components/LoginModal'
+import CoinCard from './CoinCard'
+import Navbar from './Navbar'
+import Dashboard from './Dashboard'
+import AlertManager from './AlertManager'
+import Portfolio from './Portfolio'
+import LoginModal from './LoginModal'
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
