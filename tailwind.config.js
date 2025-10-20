@@ -5,7 +5,7 @@ export default {
     "./src/**/*.{js,jsx}",
   ],
   theme: {
-    // ... rest of your theme configuration
+    // ... all your other theme settings are correct
   },
   plugins: [],
 }
