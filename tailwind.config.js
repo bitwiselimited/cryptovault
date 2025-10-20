@@ -8,58 +8,57 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Dark theme colors
         dark: {
-          bg: {
-            primary: '#0A0E27',
-            secondary: '#131829',
-            tertiary: '#1A1F3A',
-          },
-          text: {
-            primary: '#FFFFFF',
-            secondary: '#A0AEC0',
-            muted: '#718096',
-          },
-          border: '#2D3748',
+          50: '#18181B',
+          100: '#0F1014',
+          200: '#0A0B0F',
+          300: '#050507',
         },
-        // Light theme colors
         light: {
-          bg: {
-            primary: '#F7FAFC',
-            secondary: '#FFFFFF',
-            tertiary: '#EDF2F7',
-          },
-          text: {
-            primary: '#1A202C',
-            secondary: '#4A5568',
-            muted: '#718096',
-          },
-          border: '#E2E8F0',
+          50: '#FFFFFF',
+          100: '#F7F7F8',
+          200: '#EFEFEF',
+          300: '#E5E5E5',
         },
-        // Accent colors (same for both themes)
         accent: {
-          blue: '#3B82F6',
-          purple: '#8B5CF6',
-          cyan: '#06B6D4',
-          green: '#10B981',
-          red: '#EF4444',
-          yellow: '#F59E0B',
-          pink: '#EC4899',
+          blue: '#5B8DEF',
+          purple: '#8B7FF4',
+          green: '#00D084',
+          red: '#F87171',
+          yellow: '#FBBF24',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
-      boxShadow: {
-        'custom-light': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        'custom-dark': '0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2)',
-        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.3)',
-        'glow-purple': '0 0 20px rgba(139, 92, 246, 0.3)',
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
+        'scale-in': 'scaleIn 0.2s ease-out',
+        'shimmer': 'shimmer 2s infinite',
       },
-      backgroundImage: {
-        'gradient-brand': 'linear-gradient(135deg, #3B82F6 0%, #8B5CF6 50%, #06B6D4 100%)',
-        'gradient-dark': 'linear-gradient(135deg, #0A0E27 0%, #131829 100%)',
-        'gradient-light': 'linear-gradient(135deg, #F7FAFC 0%, #EDF2F7 100%)',
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
       },
     },
   },
