@@ -1,236 +1,274 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Plus, Trash2, AlertCircle } from 'lucide-react';
-import storageService from '../services/storageService';
-import { formatCurrency } from '../utils/helpers';
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Bell, Plus, Trash2, TrendingUp, TrendingDown, Search } from 'lucide-react'
+import { getAlerts, addAlert, removeAlert } from '../utils/db'
+import { useCryptoData } from '../hooks/useCryptoData'
+import { checkPriceAlerts } from '../utils/notifications'
 
-const PriceAlerts = ({ marketData, onRequestNotification }) => {
-  const [alerts, setAlerts] = useState(storageService.getAlerts());
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    coinId: '',
-    type: 'above',
-    price: '',
-  });
+const PriceAlerts = () => {
+  const { coins } = useCryptoData()
+  const [alerts, setAlerts] = useState([])
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCoin, setSelectedCoin] = useState(null)
+  const [alertType, setAlertType] = useState('above')
+  const [targetPrice, setTargetPrice] = useState('')
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    loadAlerts()
     
-    const coin = marketData.find(c => c.id === formData.coinId);
-    if (!coin) return;
+    // Check alerts every minute
+    const interval = setInterval(() => {
+      checkPriceAlerts(coins, alerts)
+    }, 60000)
+    
+    return () => clearInterval(interval)
+  }, [coins, alerts])
 
+  const loadAlerts = async () => {
+    const savedAlerts = await getAlerts()
+    setAlerts(savedAlerts)
+  }
+
+  const handleAddAlert = async () => {
+    if (!selectedCoin || !targetPrice) return
+    
     const newAlert = {
-      coinId: formData.coinId,
-      coinName: coin.name,
-      coinSymbol: coin.symbol,
-      type: formData.type,
-      price: parseFloat(formData.price),
-    };
+      id: Date.now().toString(),
+      coinId: selectedCoin.id,
+      coinName: selectedCoin.name,
+      coinSymbol: selectedCoin.symbol,
+      coinImage: selectedCoin.image,
+      type: alertType,
+      targetPrice: parseFloat(targetPrice),
+      currentPrice: selectedCoin.current_price,
+      createdAt: new Date().toISOString(),
+    }
+    
+    await addAlert(newAlert)
+    await loadAlerts()
+    
+    // Reset form
+    setShowAddForm(false)
+    setSelectedCoin(null)
+    setTargetPrice('')
+    setSearchQuery('')
+  }
 
-    const updated = storageService.addAlert(newAlert);
-    setAlerts(updated);
-    setFormData({ coinId: '', type: 'above', price: '' });
-    setShowForm(false);
+  const handleRemoveAlert = async (alertId) => {
+    await removeAlert(alertId)
+    await loadAlerts()
+  }
 
-    // Request notification permission
-    onRequestNotification();
-  };
-
-  const handleDelete = (alertId) => {
-    const updated = storageService.removeAlert(alertId);
-    setAlerts(updated);
-  };
+  const filteredCoins = coins.filter(coin =>
+    coin.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    coin.symbol.toLowerCase().includes(searchQuery.toLowerCase())
+  ).slice(0, 10)
 
   return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.5 }}
-      className="mb-8"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
     >
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg">
-            <Bell className="w-6 h-6 text-white" />
+      {/* Header */}
+      <div className="flex justify-between items-start">
+        <div>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+              <Bell className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold">Price Alerts</h1>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-100">Price Alerts</h2>
-            <p className="text-sm text-gray-500">Get notified when prices hit your targets</p>
-          </div>
+          <p className="text-gray-400">Get notified when prices hit your targets</p>
         </div>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center space-x-2 px-4 py-2 bg-linear-accent rounded-lg text-white font-medium hover:bg-linear-accent-light transition-colors"
+        
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="flex items-center space-x-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-smooth"
         >
-          <Plus className="w-5 h-5" />
-          <span>New Alert</span>
-        </motion.button>
+          <Plus className="w-4 h-4" />
+          <span className="font-medium">Add Alert</span>
+        </button>
       </div>
 
+      {/* Add Alert Form */}
       <AnimatePresence>
-        {showForm && (
+        {showAddForm && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="glass-panel p-6 mb-6"
+            className="card-elevated rounded-xl p-6 space-y-4"
           >
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Select Coin
-                </label>
-                <select
-                  value={formData.coinId}
-                  onChange={(e) => setFormData({ ...formData, coinId: e.target.value })}
-                  required
-                  className="w-full px-4 py-2 bg-gray-800 border border-linear-border rounded-lg text-gray-200 focus:outline-none focus:border-linear-accent"
-                >
-                  <option value="">Choose a coin...</option>
-                  {marketData.slice(0, 50).map((coin) => (
-                    <option key={coin.id} value={coin.id}>
-                      {coin.name} ({coin.symbol.toUpperCase()}) - ${coin.current_price}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <h3 className="text-lg font-semibold mb-4">Create New Alert</h3>
+            
+            {/* Coin Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search for a coin..."
+                className="w-full pl-10 pr-4 py-3 rounded-lg bg-linear-dark-200 border border-linear-border text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-smooth"
+              />
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Alert Type
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-800 border border-linear-border rounded-lg text-gray-200 focus:outline-none focus:border-linear-accent"
+            {/* Coin Selection */}
+            {searchQuery && (
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {filteredCoins.map(coin => (
+                  <button
+                    key={coin.id}
+                    onClick={() => {
+                      setSelectedCoin(coin)
+                      setSearchQuery('')
+                    }}
+                    className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-linear-hover transition-smooth text-left"
                   >
-                    <option value="above">Price Above</option>
-                    <option value="below">Price Below</option>
-                  </select>
-                </div>
+                    <img src={coin.image} alt={coin.name} className="w-8 h-8 rounded-full" />
+                    <div className="flex-1">
+                      <p className="font-medium">{coin.name}</p>
+                      <p className="text-sm text-gray-400">${coin.current_price.toFixed(2)}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Target Price (USD)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    required
-                    placeholder="0.00"
-                    className="w-full px-4 py-2 bg-gray-800 border border-linear-border rounded-lg text-gray-200 focus:outline-none focus:border-linear-accent"
-                  />
+            {/* Selected Coin */}
+            {selectedCoin && !searchQuery && (
+              <div className="flex items-center space-x-3 p-4 rounded-lg bg-linear-hover">
+                <img src={selectedCoin.image} alt={selectedCoin.name} className="w-10 h-10 rounded-full" />
+                <div className="flex-1">
+                  <p className="font-medium">{selectedCoin.name}</p>
+                  <p className="text-sm text-gray-400">Current: ${selectedCoin.current_price.toFixed(2)}</p>
                 </div>
               </div>
+            )}
 
-              <div className="flex space-x-3">
-                <button
-                  type="submit"
-                  className="flex-1 py-2 bg-linear-accent rounded-lg text-white font-medium hover:bg-linear-accent-light transition-colors"
-                >
-                  Create Alert
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-6 py-2 bg-gray-800 rounded-lg text-gray-300 font-medium hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+            {/* Alert Type */}
+            <div className="flex rounded-lg bg-linear-dark-200 p-1">
+              <button
+                onClick={() => setAlertType('above')}
+                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-md transition-smooth ${
+                  alertType === 'above' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>Price Above</span>
+              </button>
+              <button
+                onClick={() => setAlertType('below')}
+                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2.5 rounded-md transition-smooth ${
+                  alertType === 'below' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <TrendingDown className="w-4 h-4" />
+                <span>Price Below</span>
+              </button>
+            </div>
+
+            {/* Target Price */}
+            <input
+              type="number"
+              value={targetPrice}
+              onChange={(e) => setTargetPrice(e.target.value)}
+              placeholder="Enter target price (USD)"
+              step="0.01"
+              className="w-full px-4 py-3 rounded-lg bg-linear-dark-200 border border-linear-border text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-smooth"
+            />
+
+            {/* Submit */}
+            <button
+              onClick={handleAddAlert}
+              disabled={!selectedCoin || !targetPrice}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed rounded-lg font-medium transition-smooth"
+            >
+              Create Alert
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Alerts List */}
-      {alerts.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {alerts.map((alert) => {
-            const coin = marketData.find(c => c.id === alert.coinId);
-            const currentPrice = coin?.current_price || 0;
-            const isTriggered = alert.triggered;
+      <div className="space-y-3">
+        {alerts.length === 0 ? (
+          <div className="card-elevated rounded-xl p-12 text-center">
+            <Bell className="w-12 h-12 mx-auto mb-4 text-gray-600" />
+            <p className="text-gray-400">No alerts set yet</p>
+            <p className="text-sm text-gray-500 mt-2">Create your first alert to get started</p>
+          </div>
+        ) : (
+          alerts.map((alert, index) => (
+            <AlertCard
+              key={alert.id}
+              alert={alert}
+              index={index}
+              onRemove={handleRemoveAlert}
+              currentPrice={coins.find(c => c.id === alert.coinId)?.current_price}
+            />
+          ))
+        )}
+      </div>
+    </motion.div>
+  )
+}
 
-            return (
-              <motion.div
-                key={alert.id}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className={`glass-panel p-4 ${
-                  isTriggered ? 'border-green-500/50' : ''
-                }`}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    {coin && (
-                      <img
-                        src={coin.image}
-                        alt={alert.coinName}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    )}
-                    <div>
-                      <p className="font-semibold text-gray-100">{alert.coinName}</p>
-                      <p className="text-xs text-gray-500 uppercase">{alert.coinSymbol}</p>
-                    </div>
-                  </div>
+function AlertCard({ alert, index, onRemove, currentPrice }) {
+  const isTriggered = currentPrice && (
+    (alert.type === 'above' && currentPrice >= alert.targetPrice) ||
+    (alert.type === 'below' && currentPrice <= alert.targetPrice)
+  )
 
-                  <motion.button
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => handleDelete(alert.id)}
-                    className="p-1 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </motion.button>
-                </div>
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={`card-elevated rounded-xl p-5 ${isTriggered ? 'ring-2 ring-green-500' : ''}`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4 flex-1">
+          <img src={alert.coinImage} alt={alert.coinName} className="w-12 h-12 rounded-full" />
+          
+          <div className="flex-1">
+            <h3 className="font-semibold text-white">{alert.coinName}</h3>
+            <div className="flex items-center space-x-3 mt-1">
+              <span className={`text-sm px-2 py-0.5 rounded ${
+                alert.type === 'above' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                {alert.type === 'above' ? '↑ Above' : '↓ Below'}
+              </span>
+              <span className="text-sm text-gray-400">
+                Target: ${alert.targetPrice.toFixed(2)}
+              </span>
+              {currentPrice && (
+                <span className="text-sm text-gray-400">
+                  Current: ${currentPrice.toFixed(2)}
+                </span>
+              )}
+            </div>
+          </div>
 
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Target:</span>
-                    <span className="font-semibold text-gray-200">
-                      {alert.type === 'above' ? '↑' : '↓'} {formatCurrency(alert.price, 'USD')}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Current:</span>
-                    <span className="font-semibold text-gray-200">
-                      {formatCurrency(currentPrice, 'USD')}
-                    </span>
-                  </div>
-
-                  {isTriggered && (
-                    <div className="flex items-center space-x-2 mt-3 p-2 bg-green-500/10 rounded-lg">
-                      <AlertCircle className="w-4 h-4 text-green-400" />
-                      <span className="text-xs text-green-400 font-medium">
-                        Alert Triggered!
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
+          {isTriggered && (
+            <div className="px-3 py-1 rounded-full bg-green-500/20 text-green-400 text-sm font-medium">
+              Triggered!
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="glass-panel p-12 text-center">
-          <Bell className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">No alerts set yet</p>
-          <p className="text-sm text-gray-600 mt-2">
-            Create your first alert to get notified about price changes
-          </p>
-        </div>
-      )}
-    </motion.section>
-  );
-};
 
-export default PriceAlerts;
+        <button
+          onClick={() => onRemove(alert.id)}
+          className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-smooth ml-4"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+export default PriceAlerts
