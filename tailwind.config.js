@@ -1,11 +1,13 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    "./public/index.html", // Corrected path to your HTML file
+    "./index.html", // This path is now correct
     "./src/**/*.{js,jsx}",
   ],
   theme: {
-    // ... all your other theme settings are correct
+    extend: {
+      // ... all your theme settings are correct
+    },
   },
   plugins: [],
 }
