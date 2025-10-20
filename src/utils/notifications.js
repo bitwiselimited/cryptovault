@@ -19,8 +19,8 @@ export async function requestNotificationPermission() {
 export function sendNotification(title, options = {}) {
   if (Notification.permission === 'granted') {
     new Notification(title, {
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
       ...options,
     })
   }
@@ -37,9 +37,9 @@ export function checkPriceAlerts(coins, alerts) {
 
     if (shouldTrigger) {
       sendNotification(
-        `Price Alert: ${alert.coinName}`,
+        `🔔 Price Alert: ${alert.coinName}`,
         {
-          body: `${alert.coinName} is now ${alert.type} $${alert.targetPrice}. Current price: $${coin.current_price.toFixed(2)}`,
+          body: `${alert.coinName} is now ${alert.type} $${alert.targetPrice}.\nCurrent price: $${coin.current_price.toFixed(2)}`,
           tag: alert.id,
           requireInteraction: true,
         }
