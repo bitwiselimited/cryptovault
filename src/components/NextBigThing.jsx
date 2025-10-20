@@ -1,191 +1,186 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Sparkles, TrendingUp, Activity, Users } from 'lucide-react';
-import predictionEngine from '../services/predictionEngine';
-import { formatCurrency, formatPercentage } from '../utils/helpers';
+import React, { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
+import { Sparkles, TrendingUp, Activity, Users, GitBranch, RefreshCw } from 'lucide-react'
+import { useCryptoData } from '../hooks/useCryptoData'
+import { analyzeNextBigThing } from '../utils/predictor'
+import { useExchangeRate } from '../hooks/useExchangeRate'
 
-const NextBigThing = ({ marketData, inrRate, onAddToWatchlist, watchlist }) => {
-  const [predictions, setPredictions] = React.useState([]);
+const NextBigThingPredictor = () => {
+  const { coins, loading, refetch } = useCryptoData()
+  const { inrRate } = useExchangeRate()
+  const [predictions, setPredictions] = useState([])
+  const [analyzing, setAnalyzing] = useState(false)
 
-  React.useEffect(() => {
-    if (marketData.length) {
-      predictionEngine.predictNextBigThings(marketData).then(setPredictions);
+  useEffect(() => {
+    if (coins.length > 0) {
+      analyzePredictions()
     }
-  }, [marketData]);
+  }, [coins])
 
-  const getConfidenceColor = (confidence) => {
-    if (confidence >= 75) return 'text-green-400';
-    if (confidence >= 60) return 'text-blue-400';
-    return 'text-yellow-400';
-  };
+  const analyzePredictions = async () => {
+    setAnalyzing(true)
+    // Simulate AI analysis delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    const results = analyzeNextBigThing(coins)
+    setPredictions(results)
+    setAnalyzing(false)
+  }
 
-  const getRecommendationColor = (level) => {
-    const colors = {
-      strong: 'from-green-500 to-emerald-500',
-      moderate: 'from-blue-500 to-indigo-500',
-      watch: 'from-yellow-500 to-orange-500',
-      weak: 'from-gray-500 to-gray-600',
-    };
-    return colors[level] || colors.weak;
-  };
+  if (loading || analyzing) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="flex items-center justify-center h-96"
+      >
+        <div className="text-center">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          >
+            <Sparkles className="w-12 h-12 mx-auto mb-4 text-purple-500" />
+          </motion.div>
+          <p className="text-gray-400">Analyzing market trends...</p>
+          <p className="text-sm text-gray-500 mt-2">AI prediction in progress</p>
+        </div>
+      </motion.div>
+    )
+  }
 
   return (
-    <motion.section
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: 0.4 }}
-      className="mb-8"
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-6"
     >
-      <div className="flex items-center space-x-3 mb-6">
-        <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg animate-pulse-glow">
-          <Sparkles className="w-6 h-6 text-white" />
-        </div>
+      {/* Header */}
+      <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold gradient-text">Next Big Thing Predictor</h2>
-          <p className="text-sm text-gray-500">AI-powered predictions based on momentum & growth</p>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold">Next Big Thing Predictor</h1>
+          </div>
+          <p className="text-gray-400">AI-powered analysis of emerging opportunities</p>
+        </div>
+        
+        <button
+          onClick={() => { refetch(); analyzePredictions(); }}
+          className="p-2.5 rounded-lg bg-linear-dark-200 hover:bg-linear-hover transition-smooth"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Predictions */}
+      <div className="space-y-4">
+        {predictions.map((prediction, index) => (
+          <PredictionCard
+            key={prediction.coin.id}
+            prediction={prediction}
+            index={index}
+            inrRate={inrRate}
+          />
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+function PredictionCard({ prediction, index, inrRate }) {
+  const { coin, score, reasons } = prediction
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.1 }}
+      className="card-elevated rounded-xl p-6 relative overflow-hidden"
+    >
+      {/* Rank Badge */}
+      <div className="absolute top-4 right-4">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' :
+          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800' :
+          index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
+          'bg-linear-dark-200 text-gray-400'
+        }`}>
+          #{index + 1}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {predictions.map((prediction, index) => {
-          const { coin, score, signals, confidence, recommendation } = prediction;
-          
-          return (
-            <motion.div
-              key={coin.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="predictor-glow glass-panel p-6 relative overflow-hidden"
-            >
-              {/* Rank Badge */}
-              <div className="absolute top-4 right-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-linear-accent to-linear-accent-light flex items-center justify-center font-bold text-white">
-                  #{index + 1}
-                </div>
-              </div>
-
-              {/* Coin Info */}
-              <div className="flex items-center space-x-3 mb-4">
-                <img
-                  src={coin.image}
-                  alt={coin.name}
-                  className="w-12 h-12 rounded-full"
-                />
-                <div>
-                  <h3 className="font-bold text-lg text-gray-100">{coin.name}</h3>
-                  <p className="text-sm text-gray-500 uppercase">{coin.symbol}</p>
-                </div>
-              </div>
-
-              {/* Prices */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Current Price</p>
-                  <p className="text-sm font-semibold text-gray-200">
-                    {formatCurrency(coin.current_price, 'USD')}
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    {formatCurrency(coin.current_price * inrRate, 'INR')}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">7-Day Change</p>
-                  <p className={`text-sm font-semibold ${
-                    coin.price_change_percentage_7d_in_currency >= 0
-                      ? 'text-green-400'
-                      : 'text-red-400'
-                  }`}>
-                    {formatPercentage(coin.price_change_percentage_7d_in_currency || 0)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Prediction Score */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-gray-400">Prediction Score</span>
-                  <span className="text-sm font-bold text-linear-accent-light">
-                    {score.toFixed(0)}/100
-                  </span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${score}%` }}
-                    transition={{ duration: 1, delay: index * 0.1 }}
-                    className="h-full bg-gradient-to-r from-linear-accent to-linear-accent-light"
-                  />
-                </div>
-              </div>
-
-              {/* Confidence */}
-              <div className="mb-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-gray-400">Confidence Level</span>
-                  <span className={`text-sm font-bold ${getConfidenceColor(confidence)}`}>
-                    {confidence.toFixed(0)}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-800 rounded-full h-2 overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${confidence}%` }}
-                    transition={{ duration: 1, delay: index * 0.1 + 0.2 }}
-                    className={`h-full bg-gradient-to-r ${
-                      confidence >= 75
-                        ? 'from-green-500 to-emerald-500'
-                        : confidence >= 60
-                        ? 'from-blue-500 to-indigo-500'
-                        : 'from-yellow-500 to-orange-500'
-                    }`}
-                  />
-                </div>
-              </div>
-
-              {/* Recommendation */}
-              <div className={`mb-4 p-3 rounded-lg bg-gradient-to-r ${getRecommendationColor(recommendation.level)} bg-opacity-10`}>
-                <p className="text-xs font-semibold text-center text-gray-100">
-                  {recommendation.text}
-                </p>
-              </div>
-
-              {/* Signals */}
-              <div className="space-y-2 mb-4">
-                <p className="text-xs text-gray-500 font-medium mb-2">Key Signals:</p>
-                {signals.slice(0, 3).map((signal, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start space-x-2 text-xs"
-                  >
-                    {signal.type === 'volume' && <Activity className="w-4 h-4 text-blue-400 flex-shrink-0" />}
-                    {signal.type === 'momentum' && <TrendingUp className="w-4 h-4 text-green-400 flex-shrink-0" />}
-                    {signal.type === 'consistency' && <Sparkles className="w-4 h-4 text-purple-400 flex-shrink-0" />}
-                    {signal.type === 'position' && <Users className="w-4 h-4 text-yellow-400 flex-shrink-0" />}
-                    <span className="text-gray-300 leading-tight">{signal.message}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Actions */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onAddToWatchlist(coin.id)}
-                className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-                  watchlist.includes(coin.id)
-                    ? 'bg-yellow-500/20 text-yellow-400'
-                    : 'bg-linear-accent/20 text-linear-accent-light hover:bg-linear-accent/30'
-                }`}
-              >
-                {watchlist.includes(coin.id) ? '⭐ In Watchlist' : '+ Add to Watchlist'}
-              </motion.button>
-            </motion.div>
-          );
-        })}
+      <div className="flex items-start space-x-4 mb-6">
+        <img src={coin.image} alt={coin.name} className="w-16 h-16 rounded-full ring-4 ring-purple-500/20" />
+        <div className="flex-1">
+          <h3 className="text-xl font-bold mb-1">{coin.name}</h3>
+          <p className="text-gray-400 text-sm uppercase mb-2">{coin.symbol}</p>
+          <div className="flex items-center space-x-2">
+            <span className="text-2xl font-bold text-white">
+              ₹{(coin.current_price * inrRate).toFixed(2)}
+            </span>
+            <span className={`text-sm ${coin.price_change_percentage_24h > 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {coin.price_change_percentage_24h > 0 ? '+' : ''}
+              {coin.price_change_percentage_24h.toFixed(2)}%
+            </span>
+          </div>
+        </div>
       </div>
-    </motion.section>
-  );
-};
 
-export default NextBigThing;
+      {/* Score */}
+      <div className="mb-4">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-gray-400">Prediction Score</span>
+          <span className="text-lg font-bold text-purple-400">{score}/100</span>
+        </div>
+        <div className="w-full bg-linear-dark-200 rounded-full h-2">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${score}%` }}
+            transition={{ duration: 1, delay: index * 0.1 }}
+            className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+          />
+        </div>
+      </div>
+
+      {/* Reasons */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {reasons.map((reason, idx) => (
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: (index * 0.1) + (idx * 0.05) }}
+            className="flex items-start space-x-2 p-3 rounded-lg bg-linear-hover"
+          >
+            <div className="p-1.5 rounded-md bg-purple-500/20 mt-0.5">
+              {getReasonIcon(reason.type)}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-200">{reason.text}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  )
+}
+
+function getReasonIcon(type) {
+  const iconClass = "w-4 h-4 text-purple-400"
+  switch (type) {
+    case 'volume':
+      return <Activity className={iconClass} />
+    case 'growth':
+      return <TrendingUp className={iconClass} />
+    case 'community':
+      return <Users className={iconClass} />
+    case 'development':
+      return <GitBranch className={iconClass} />
+    default:
+      return <Sparkles className={iconClass} />
+  }
+}
+
+export default NextBigThingPredictor
