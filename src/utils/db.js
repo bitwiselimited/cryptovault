@@ -6,17 +6,14 @@ const DB_VERSION = 1
 export async function initDB() {
   const db = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      // Watchlist store
       if (!db.objectStoreNames.contains('watchlist')) {
         db.createObjectStore('watchlist', { keyPath: 'id' })
       }
       
-      // Alerts store
       if (!db.objectStoreNames.contains('alerts')) {
         db.createObjectStore('alerts', { keyPath: 'id' })
       }
       
-      // Portfolio store
       if (!db.objectStoreNames.contains('portfolio')) {
         const portfolioStore = db.createObjectStore('portfolio', { keyPath: 'id', autoIncrement: true })
         portfolioStore.createIndex('username', 'username', { unique: false })
@@ -26,7 +23,7 @@ export async function initDB() {
   return db
 }
 
-// Watchlist functions
+// Watchlist
 export async function addToWatchlist(coin) {
   const db = await initDB()
   await db.put('watchlist', {
@@ -54,7 +51,7 @@ export async function isInWatchlist(coinId) {
   return !!item
 }
 
-// Alert functions
+// Alerts
 export async function addAlert(alert) {
   const db = await initDB()
   await db.put('alerts', alert)
@@ -70,7 +67,7 @@ export async function getAlerts() {
   return await db.getAll('alerts')
 }
 
-// Portfolio functions
+// Portfolio
 export async function addToPortfolio(username, coinId, coinName, coinSymbol, coinImage, amount, buyPrice) {
   const db = await initDB()
   await db.add('portfolio', {
