@@ -1,259 +1,201 @@
 import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Sparkles, TrendingUp, Activity, Users, GitBranch, RefreshCw, Zap, Target } from 'lucide-react'
+import { ArrowLeft, Star, TrendingUp, TrendingDown, ExternalLink } from 'lucide-react'
 import { useData } from '../context/DataContext'
-import { analyzeNextBigThing } from '../utils/predictor'
+import { addToWatchlist, removeFromWatchlist, isInWatchlist } from '../utils/db'
 
-const Predictor = () => {
-  const { coins, inrRate, loading, refetch } = useData()
-  const [predictions, setPredictions] = useState([])
-  const [analyzing, setAnalyzing] = useState(false)
+const CoinDetails = () => {
+  const { coinId } = useParams()
+  const navigate = useNavigate()
+  const { coins, inrRate } = useData()
+  const [currency, setCurrency] = useState('INR')
+  const [isWatchlisted, setIsWatchlisted] = useState(false)
+  
+  const coin = coins.find(c => c.id === coinId)
 
   useEffect(() => {
-    if (coins.length > 0) {
-      analyzePredictions()
+    if (coin) {
+      checkWatchlist()
     }
-  }, [coins])
+  }, [coin])
 
-  const analyzePredictions = async () => {
-    setAnalyzing(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    const results = analyzeNextBigThing(coins)
-    setPredictions(results)
-    setAnalyzing(false)
+  const checkWatchlist = async () => {
+    const inList = await isInWatchlist(coinId)
+    setIsWatchlisted(inList)
   }
 
-  if (loading || analyzing) {
+  const toggleWatchlist = async () => {
+    if (isWatchlisted) {
+      await removeFromWatchlist(coinId)
+    } else {
+      await addToWatchlist(coin)
+    }
+    setIsWatchlisted(!isWatchlisted)
+  }
+
+  if (!coin) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="flex items-center justify-center h-96"
-      >
-        <div className="text-center">
-          <motion.div
-            animate={{ 
-              rotate: 360,
-              scale: [1, 1.2, 1]
-            }}
-            transition={{ 
-              rotate: { duration: 2, repeat: Infinity, ease: 'linear' },
-              scale: { duration: 1, repeat: Infinity }
-            }}
-            className="inline-block mb-6"
+      <div className="container mx-auto px-6 py-6 max-w-7xl">
+        <div className="linear-card rounded-lg p-16 text-center">
+          <p className="text-sm linear-text">Coin not found</p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-4 text-sm text-blue-500 hover:text-blue-400"
           >
-            <div className="w-20 h-20 rounded-2xl bg-gradient-brand flex items-center justify-center">
-              <Sparkles className="w-10 h-10 text-white" />
-            </div>
-          </motion.div>
-          <p className="text-2xl font-bold mb-2 gradient-text">AI Analysis in Progress</p>
-          <p className="text-gray-400">Scanning market trends and patterns...</p>
+            Go back
+          </button>
         </div>
-      </motion.div>
+      </div>
     )
   }
 
+  const price = currency === 'INR' 
+    ? (coin.current_price * inrRate).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+    : coin.current_price.toLocaleString('en-US', { minimumFractionDigits: 2 })
+
+  const isPositive = coin.price_change_percentage_24h > 0
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-8"
-    >
+    <div className="container mx-auto px-6 py-6 max-w-5xl">
+      {/* Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center space-x-2 mb-6 text-sm linear-text hover:text-gray-200 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        <span>Back</span>
+      </button>
+
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div>
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 shadow-glow-purple">
-              <Sparkles className="w-7 h-7 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold gradient-text">Next Big Thing Predictor</h1>
-          </div>
-          <p className="text-gray-400 flex items-center space-x-2">
-            <Zap className="w-4 h-4" />
-            <span>AI-powered analysis of emerging crypto opportunities</span>
-          </p>
-        </div>
-        
-        <button
-          onClick={() => { refetch(); analyzePredictions(); }}
-          className="flex items-center space-x-2 px-6 py-3 bg-gradient-brand rounded-xl font-semibold shadow-lg hover:shadow-glow-purple smooth-transition"
-        >
-          <RefreshCw className="w-5 h-5" />
-          <span>Re-analyze</span>
-        </button>
-      </div>
-
-      {/* Info Banner */}
-      <div className="card-modern rounded-2xl p-6 border-l-4 border-accent-purple">
-        <div className="flex items-start space-x-4">
-          <div className="p-3 rounded-xl bg-accent-purple/20">
-            <Target className="w-6 h-6 text-accent-purple" />
-          </div>
-          <div>
-            <h3 className="font-bold text-lg mb-2">How Our AI Prediction Works</h3>
-            <ul className="text-sm text-gray-400 space-y-2">
-              <li className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-blue" />
-                <span><strong className="text-white">Volume Analysis:</strong> Identifies coins with increasing trading activity</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-purple" />
-                <span><strong className="text-white">Price Momentum:</strong> Tracks consistent growth patterns</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-cyan" />
-                <span><strong className="text-white">Stability Score:</strong> Measures volatility and market confidence</span>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* Predictions */}
-      <div className="space-y-6">
-        {predictions.map((prediction, index) => (
-          <PredictionCard
-            key={prediction.coin.id}
-            prediction={prediction}
-            index={index}
-            inrRate={inrRate}
-          />
-        ))}
-      </div>
-    </motion.div>
-  )
-}
-
-function PredictionCard({ prediction, index, inrRate }) {
-  const { coin, score, reasons } = prediction
-  
-  const badges = [
-    { label: '🥇 Top Pick', color: 'from-yellow-400 to-orange-500' },
-    { label: '🥈 Strong Potential', color: 'from-gray-300 to-gray-400' },
-    { label: '🥉 Good Prospect', color: 'from-orange-400 to-orange-600' },
-    { label: '⭐ Notable', color: 'from-accent-blue to-accent-purple' },
-    { label: '💎 Hidden Gem', color: 'from-accent-cyan to-accent-blue' },
-  ]
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -30 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: index * 0.15, type: 'spring' }}
-      className="card-modern rounded-2xl p-6 lg:p-8 relative overflow-hidden group"
-    >
-      {/* Animated background */}
-      <motion.div
-        className={`absolute inset-0 bg-gradient-to-br ${
-          index === 0 ? 'from-yellow-500/10 to-orange-500/5' :
-          index === 1 ? 'from-purple-500/10 to-pink-500/5' :
-          'from-blue-500/10 to-cyan-500/5'
-        } opacity-0 group-hover:opacity-100 smooth-transition`}
-      />
-
-      <div className="relative z-10">
-        {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6 mb-6">
-          <div className="flex items-start space-x-4">
-            <div className="relative">
-              <img 
-                src={coin.image} 
-                alt={coin.name} 
-                className="w-16 h-16 lg:w-20 lg:h-20 rounded-full ring-4 ring-accent-purple/30 group-hover:ring-accent-purple/60 smooth-transition" 
-              />
-              <div className={`absolute -bottom-2 -right-2 px-2 py-1 rounded-lg bg-gradient-to-r ${badges[index].color} text-white text-xs font-bold shadow-lg`}>
-                #{index + 1}
+      <div className="linear-card rounded-lg p-6 mb-4">
+        <div className="flex items-start justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <img src={coin.image} alt={coin.name} className="w-16 h-16 rounded-full" />
+            <div>
+              <div className="flex items-center space-x-3 mb-1">
+                <h1 className="text-2xl font-semibold">{coin.name}</h1>
+                <span className="text-sm linear-text uppercase font-medium">{coin.symbol}</span>
               </div>
+              <p className="text-xs linear-text">Rank #{coin.market_cap_rank}</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <div className="flex items-center linear-card rounded-lg p-0.5">
+              <button
+                onClick={() => setCurrency('INR')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  currency === 'INR' ? 'bg-blue-600 text-white' : 'text-gray-400'
+                }`}
+              >
+                INR
+              </button>
+              <button
+                onClick={() => setCurrency('USD')}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  currency === 'USD' ? 'bg-blue-600 text-white' : 'text-gray-400'
+                }`}
+              >
+                USD
+              </button>
             </div>
             
-            <div className="flex-1">
-              <div className={`inline-block px-3 py-1 rounded-lg bg-gradient-to-r ${badges[index].color} text-white text-sm font-bold mb-2`}>
-                {badges[index].label}
-              </div>
-              <h3 className="text-2xl font-bold mb-1">{coin.name}</h3>
-              <p className="text-gray-400 text-sm uppercase font-semibold tracking-wide mb-3">{coin.symbol}</p>
-              <div className="flex items-center space-x-3">
-                <span className="text-3xl font-bold">
-                  ₹{(coin.current_price * inrRate).toFixed(2)}
-                </span>
-                <span className={`px-3 py-1 rounded-lg font-bold ${
-                  coin.price_change_percentage_24h > 0 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {coin.price_change_percentage_24h > 0 ? '+' : ''}
-                  {coin.price_change_percentage_24h.toFixed(2)}%
-                </span>
-              </div>
+            <button
+              onClick={toggleWatchlist}
+              className="p-2 rounded-md linear-hover"
+            >
+              <Star className={`w-5 h-5 ${isWatchlisted ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Price */}
+        <div className="mb-6">
+          <div className="flex items-baseline space-x-3 mb-2">
+            <span className="text-4xl font-semibold">
+              {currency === 'INR' ? '₹' : '$'}{price}
+            </span>
+            <span className={`flex items-center space-x-1 text-sm font-medium ${
+              isPositive ? 'text-green-500' : 'text-red-500'
+            }`}>
+              {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+              <span>{Math.abs(coin.price_change_percentage_24h).toFixed(2)}%</span>
+            </span>
+          </div>
+          <p className="text-xs linear-text">24h change</p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <p className="text-xs linear-text mb-1">Market Cap</p>
+            <p className="text-sm font-semibold">
+              {currency === 'INR' ? '₹' : '$'}
+              {((coin.market_cap * (currency === 'INR' ? inrRate : 1)) / 1e9).toFixed(2)}B
+            </p>
+          </div>
+          <div>
+            <p className="text-xs linear-text mb-1">24h Volume</p>
+            <p className="text-sm font-semibold">
+              {currency === 'INR' ? '₹' : '$'}
+              {((coin.total_volume * (currency === 'INR' ? inrRate : 1)) / 1e9).toFixed(2)}B
+            </p>
+          </div>
+          <div>
+            <p className="text-xs linear-text mb-1">Circulating Supply</p>
+            <p className="text-sm font-semibold">
+              {coin.circulating_supply ? (coin.circulating_supply / 1e6).toFixed(2) + 'M' : 'N/A'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs linear-text mb-1">Max Supply</p>
+            <p className="text-sm font-semibold">
+              {coin.max_supply ? (coin.max_supply / 1e6).toFixed(2) + 'M' : '∞'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Additional Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="linear-card rounded-lg p-4">
+          <h3 className="text-sm font-semibold mb-3">Price Changes</h3>
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="linear-text">24h High</span>
+              <span className="font-medium">
+                {currency === 'INR' ? '₹' : '$'}
+                {((coin.high_24h || coin.current_price) * (currency === 'INR' ? inrRate : 1)).toLocaleString()}
+              </span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="linear-text">24h Low</span>
+              <span className="font-medium">
+                {currency === 'INR' ? '₹' : '$'}
+                {((coin.low_24h || coin.current_price) * (currency === 'INR' ? inrRate : 1)).toLocaleString()}
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Prediction Score */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-bold text-gray-400 uppercase tracking-wide">AI Confidence Score</span>
-            <span className="text-2xl font-bold gradient-text">{score}/100</span>
-          </div>
-          <div className="relative w-full h-3 bg-white/5 rounded-full overflow-hidden">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${score}%` }}
-              transition={{ duration: 1.5, delay: index * 0.1, ease: 'easeOut' }}
-              className={`h-full bg-gradient-to-r ${
-                score >= 80 ? 'from-green-500 to-emerald-400' :
-                score >= 60 ? 'from-accent-blue to-accent-cyan' :
-                'from-accent-purple to-accent-pink'
-              } relative`}
+        <div className="linear-card rounded-lg p-4">
+          <h3 className="text-sm font-semibold mb-3">Links</h3>
+          <div className="space-y-2">
+            <a
+              href={`https://www.coingecko.com/en/coins/${coinId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between text-xs linear-hover rounded p-2"
             >
-              <motion.div
-                animate={{ x: [0, 100, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-              />
-            </motion.div>
+              <span>View on CoinGecko</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
-        </div>
-
-        {/* Analysis Reasons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {reasons.map((reason, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: (index * 0.1) + (idx * 0.08) }}
-              className="flex items-start space-x-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 smooth-transition border border-white/5"
-            >
-              <div className="p-2 rounded-lg bg-gradient-brand/20">
-                {getReasonIcon(reason.type)}
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold leading-relaxed">{reason.text}</p>
-              </div>
-            </motion.div>
-          ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   )
 }
 
-function getReasonIcon(type) {
-  const iconClass = "w-5 h-5 text-accent-blue"
-  switch (type) {
-    case 'volume':
-      return <Activity className={iconClass} />
-    case 'growth':
-      return <TrendingUp className={iconClass} />
-    case 'community':
-      return <Users className={iconClass} />
-    case 'development':
-      return <GitBranch className={iconClass} />
-    default:
-      return <Sparkles className={iconClass} />
-  }
-}
-
-export default Predictor
+export default CoinDetails
