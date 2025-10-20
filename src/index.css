@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -11,11 +9,11 @@
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: linear-gradient(135deg, #0e0e10 0%, #18181b 100%);
-  color: #e4e4e7;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #0e0e10;
+  color: #ffffff;
   overflow-x: hidden;
 }
 
@@ -37,45 +35,20 @@ body {
   background: rgba(255, 255, 255, 0.15);
 }
 
-.glass-panel {
-  background: rgba(24, 24, 27, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+@layer utilities {
+  .glass-blur {
+    background: rgba(24, 24, 27, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  
+  .card-elevated {
+    background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  }
+  
+  .transition-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
-
-.glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: rgba(24, 24, 27, 0.7);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.shimmer {
-  background: linear-gradient(90deg, 
-    rgba(255,255,255,0.02) 0%, 
-    rgba(255,255,255,0.06) 50%, 
-    rgba(255,255,255,0.02) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-.predictor-glow {
-  box-shadow: 
-    0 0 20px rgba(99, 102, 241, 0.2),
-    0 0 40px rgba(99, 102, 241, 0.1),
-    inset 0 0 60px rgba(99, 102, 241, 0.05);
-}
-
