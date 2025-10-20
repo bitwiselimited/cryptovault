@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, TrendingDown, RefreshCw, Activity } from 'lucide-react'
+import { TrendingUp, TrendingDown, RefreshCw, Activity, DollarSign, BarChart3 } from 'lucide-react'
 import CoinCard from '../components/CoinCard'
+import { GridSkeleton } from '../components/LoadingSkeleton'
 import { useData } from '../context/DataContext'
 
 const Dashboard = () => {
@@ -20,6 +21,8 @@ const Dashboard = () => {
         .sort((a, b) => a.price_change_percentage_24h - b.price_change_percentage_24h)
     } else if (filter === 'volume') {
       filtered = filtered.sort((a, b) => b.total_volume - a.total_volume)
+    } else if (filter === 'marketcap') {
+      filtered = filtered.sort((a, b) => b.market_cap - a.market_cap)
     }
     
     return filtered.slice(0, 50)
@@ -27,26 +30,36 @@ const Dashboard = () => {
 
   const displayCoins = getFilteredCoins()
   const totalMarketCap = coins.reduce((sum, c) => sum + c.market_cap, 0)
+  const total24hVolume = coins.reduce((sum, c) => sum + c.total_volume, 0)
   const avgChange = coins.reduce((sum, c) => sum + (c.price_change_percentage_24h || 0), 0) / coins.length
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm linear-text">Loading markets...</p>
+      <div className="container mx-auto px-6 py-6 max-w-[1400px]">
+        <div className="mb-6">
+          <div className="h-8 skeleton rounded w-48 mb-2" />
+          <div className="h-4 skeleton rounded w-64" />
         </div>
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="linear-card p-4">
+              <div className="h-3 skeleton rounded w-24 mb-2" />
+              <div className="h-6 skeleton rounded w-32" />
+            </div>
+          ))}
+        </div>
+        <GridSkeleton />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-6 py-8 max-w-7xl">
-        <div className="linear-card rounded-lg p-6 text-center">
-          <p className="text-sm text-red-400 mb-3">Error: {error}</p>
-          <button onClick={refetch} className="text-sm text-blue-500 hover:text-blue-400">
-            Try again
+      <div className="container mx-auto px-6 py-6 max-w-[1400px]">
+        <div className="linear-card rounded-lg p-12 text-center">
+          <p className="text-sm text-accent-red mb-3">Error: {error}</p>
+          <button onClick={refetch} className="linear-button-primary">
+            Try Again
           </button>
         </div>
       </div>
@@ -54,14 +67,19 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="container mx-auto px-6 py-6 max-w-7xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="container mx-auto px-6 py-6 max-w-[1400px]"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold mb-1">Markets</h1>
-          <p className="text-xs linear-text flex items-center space-x-1.5">
+          <p className="text-xs text-secondary flex items-center space-x-1.5">
             <Activity className="w-3 h-3" />
-            <span>Live data</span>
+            <span>Live cryptocurrency prices</span>
             {lastUpdate && (
               <>
                 <span>•</span>
@@ -76,7 +94,7 @@ const Dashboard = () => {
             <button
               onClick={() => setCurrency('INR')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                currency === 'INR' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
+                currency === 'INR' ? 'bg-accent-blue text-white' : 'text-secondary'
               }`}
             >
               INR
@@ -84,58 +102,65 @@ const Dashboard = () => {
             <button
               onClick={() => setCurrency('USD')}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                currency === 'USD' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
+                currency === 'USD' ? 'bg-accent-blue text-white' : 'text-secondary'
               }`}
             >
               USD
             </button>
           </div>
           
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={refetch}
-            className="p-2 rounded-md linear-hover text-gray-400 hover:text-gray-200"
+            className="p-2 rounded-md linear-button-ghost"
           >
             <RefreshCw className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="linear-card rounded-lg p-4">
-          <p className="text-xs linear-text mb-1">Market Cap</p>
-          <p className="text-xl font-semibold">
-            {currency === 'INR' ? '₹' : '$'}
-            {((totalMarketCap / (currency === 'INR' ? 1 : inrRate)) / 1e12).toFixed(2)}T
-          </p>
-        </div>
-        <div className="linear-card rounded-lg p-4">
-          <p className="text-xs linear-text mb-1">Avg 24h Change</p>
-          <p className={`text-xl font-semibold ${avgChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-            {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
-          </p>
-        </div>
-        <div className="linear-card rounded-lg p-4">
-          <p className="text-xs linear-text mb-1">Cryptocurrencies</p>
-          <p className="text-xl font-semibold">{coins.length}</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatCard
+          icon={DollarSign}
+          label="Market Cap"
+          value={`${currency === 'INR' ? '₹' : '$'}${((totalMarketCap / (currency === 'INR' ? 1 : inrRate)) / 1e12).toFixed(2)}T`}
+          change={avgChange >= 0 ? `+${avgChange.toFixed(1)}%` : `${avgChange.toFixed(1)}%`}
+          positive={avgChange >= 0}
+        />
+        <StatCard
+          icon={BarChart3}
+          label="24h Volume"
+          value={`${currency === 'INR' ? '₹' : '$'}${((total24hVolume / (currency === 'INR' ? 1 : inrRate)) / 1e9).toFixed(2)}B`}
+          change="+12.3%"
+          positive={true}
+        />
+        <StatCard
+          icon={Activity}
+          label="Cryptocurrencies"
+          value={coins.length.toString()}
+          change="Live"
+          positive={true}
+        />
       </div>
 
       {/* Filters */}
       <div className="flex items-center space-x-2 mb-4">
         {[
           { id: 'all', label: 'All' },
-          { id: 'gainers', label: 'Gainers' },
-          { id: 'losers', label: 'Losers' },
+          { id: 'gainers', label: 'Top Gainers' },
+          { id: 'losers', label: 'Top Losers' },
           { id: 'volume', label: 'Volume' },
+          { id: 'marketcap', label: 'Market Cap' },
         ].map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
               filter === f.id 
-                ? 'linear-card' 
-                : 'text-gray-400 hover:text-gray-200 linear-hover'
+                ? 'linear-card text-primary' 
+                : 'text-secondary hover:text-primary hover:bg-white/[0.03]'
             }`}
           >
             {f.label}
@@ -155,7 +180,26 @@ const Dashboard = () => {
           />
         ))}
       </div>
-    </div>
+    </motion.div>
+  )
+}
+
+function StatCard({ icon: Icon, label, value, change, positive }) {
+  return (
+    <motion.div
+      whileHover={{ y: -2 }}
+      className="linear-card p-4"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-secondary font-medium uppercase tracking-wide">{label}</span>
+        <Icon className="w-4 h-4 text-accent-blue" />
+      </div>
+      <p className="text-xl font-semibold mb-1">{value}</p>
+      <div className={`flex items-center space-x-1 text-xs ${positive ? 'text-accent-green' : 'text-accent-red'}`}>
+        {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+        <span>{change}</span>
+      </div>
+    </motion.div>
   )
 }
 
