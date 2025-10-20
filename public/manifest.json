@@ -1,0 +1,12 @@
+{
+  "name": "Smart Crypto Tracker - India Edition",
+  "short_name": "Crypto Tracker",
+  "description": "Real-time cryptocurrency tracking with AI predictions for Indian investors",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0e0e10",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [ { "src": "/icons/icon-72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "any maskable" } /* ... add other icons here ... */ ],
+  "categories": ["finance", "productivity"]
+}
