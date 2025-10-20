@@ -1,43 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
-import coinGeckoService from '../services/coinGeckoService';
-import exchangeRateService from '../services/exchangeRateService';
-import { REFRESH_INTERVAL } from '../utils/constants';
+import { useState, useEffect } from 'react'
+import { fetchCryptoData } from '../utils/api'
 
-export const useCryptoData = () => {
-  const [marketData, setMarketData] = useState([]);
-  const [inrRate, setInrRate] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+export function useCryptoData() {
+  const [coins, setCoins] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     try {
-      setError(null);
-      
-      // Fetch in parallel
-      const [coins, rate] = await Promise.all([
-        coinGeckoService.getMarketData('usd', 100),
-        exchangeRateService.getINRRate(),
-      ]);
-
-      setMarketData(coins);
-      setInrRate(rate);
-      setLastUpdated(new Date());
-      setLoading(false);
+      setLoading(true)
+      setError(null)
+      const data = await fetchCryptoData()
+      setCoins(data)
     } catch (err) {
-      setError(err.message);
-      setLoading(false);
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-  }, []);
+  }
 
   useEffect(() => {
-    fetchData();
+    fetchData()
     
-    // Auto-refresh every 3 minutes
-    const interval = setInterval(fetchData, REFRESH_INTERVAL);
+    // Auto-refresh every 2 minutes
+    const interval = setInterval(fetchData, 120000)
     
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    return () => clearInterval(interval)
+  }, [])
 
-  return { marketData, inrRate, loading, error, lastUpdated, refetch: fetchData };
-};
+  return {
+    coins,
+    loading,
+    error,
+    refetch: fetchData
+  }
+}
