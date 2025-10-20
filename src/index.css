@@ -12,17 +12,15 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.011em;
   overflow-x: hidden;
-  letter-spacing: -0.01em;
 }
 
-/* Dark theme */
 body.dark {
-  background: #0D0E12;
+  background: #0A0B0F;
   color: #E4E4E7;
 }
 
-/* Light theme */
 body.light {
   background: #FAFAFA;
   color: #18181B;
@@ -38,103 +36,88 @@ body.light {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.5);
+  background: rgba(148, 163, 184, 0.3);
 }
 
-@layer utilities {
+@layer components {
   .linear-card {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    @apply bg-white/[0.02] border border-white/[0.06] rounded-lg transition-all duration-200;
   }
   
   .light .linear-card {
-    background: #FFFFFF;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    @apply bg-white border-black/[0.06];
   }
   
   .linear-card:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
+    @apply bg-white/[0.04] border-white/[0.1];
   }
   
   .light .linear-card:hover {
-    background: #FFFFFF;
-    border-color: rgba(0, 0, 0, 0.1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    @apply bg-white border-black/[0.08] shadow-sm;
   }
   
-  .linear-border {
-    border: 1px solid rgba(255, 255, 255, 0.06);
+  .linear-input {
+    @apply bg-white/[0.03] border border-white/[0.08] rounded-lg px-3 py-2 text-sm;
+    @apply focus:outline-none focus:ring-1 focus:ring-accent-blue/50 focus:border-accent-blue/50;
+    @apply transition-all duration-200 placeholder:text-gray-500;
   }
   
-  .light .linear-border {
-    border: 1px solid rgba(0, 0, 0, 0.06);
+  .light .linear-input {
+    @apply bg-white border-black/[0.08];
   }
   
-  .linear-text {
-    color: #A1A1AA;
+  .linear-button {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply hover:scale-[1.02] active:scale-[0.98];
   }
   
-  .light .linear-text {
-    color: #71717A;
+  .linear-button-primary {
+    @apply linear-button bg-accent-blue hover:bg-accent-blue/90 text-white;
   }
   
-  .linear-bg {
-    background: rgba(255, 255, 255, 0.03);
+  .linear-button-ghost {
+    @apply linear-button bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08];
   }
   
-  .light .linear-bg {
-    background: rgba(0, 0, 0, 0.02);
+  .light .linear-button-ghost {
+    @apply bg-white hover:bg-gray-50 border-black/[0.08];
   }
   
-  .linear-hover:hover {
-    background: rgba(255, 255, 255, 0.05);
+  .skeleton {
+    @apply bg-gradient-to-r from-white/[0.03] via-white/[0.06] to-white/[0.03];
+    @apply animate-shimmer bg-[length:1000px_100%];
   }
   
-  .light .linear-hover:hover {
-    background: rgba(0, 0, 0, 0.04);
+  .light .skeleton {
+    @apply from-gray-100 via-gray-200 to-gray-100;
+  }
+}
+
+@layer utilities {
+  .text-primary {
+    @apply text-gray-900 dark:text-gray-100;
   }
   
-  .shimmer {
-    position: relative;
-    overflow: hidden;
+  .text-secondary {
+    @apply text-gray-600 dark:text-gray-400;
   }
   
-  .shimmer::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-    animation: shimmer 2s infinite;
+  .text-muted {
+    @apply text-gray-500 dark:text-gray-500;
   }
-  
-  @keyframes shimmer {
-    100% {
-      left: 100%;
-    }
-  }
-  
-  .fade-in {
-    animation: fadeIn 0.3s ease-in;
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+}
+
+/* Custom Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
 }
