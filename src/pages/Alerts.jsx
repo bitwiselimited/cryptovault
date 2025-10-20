@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Plus, Trash2, TrendingUp, TrendingDown, Search, X } from 'lucide-react'
 import { getAlerts, addAlert, removeAlert } from '../utils/db'
 import { useData } from '../context/DataContext'
+import { checkPriceAlerts } from '../utils/notifications'
+import toast from 'react-hot-toast'
 
 const Alerts = () => {
   const { coins } = useData()
@@ -15,7 +17,11 @@ const Alerts = () => {
 
   useEffect(() => {
     loadAlerts()
-  }, [])
+    const interval = setInterval(() => {
+      checkPriceAlerts(coins, alerts)
+    }, 60000)
+    return () => clearInterval(interval)
+  }, [coins])
 
   const loadAlerts = async () => {
     const savedAlerts = await getAlerts()
@@ -44,11 +50,14 @@ const Alerts = () => {
     setSelectedCoin(null)
     setTargetPrice('')
     setSearchQuery('')
+    
+    toast.success('Price alert created')
   }
 
   const handleRemoveAlert = async (alertId) => {
     await removeAlert(alertId)
     await loadAlerts()
+    toast.success('Alert removed')
   }
 
   const filteredCoins = coins.filter(coin =>
@@ -57,38 +66,42 @@ const Alerts = () => {
   ).slice(0, 8)
 
   return (
-    <div className="container mx-auto px-6 py-6 max-w-4xl">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="container mx-auto px-6 py-6 max-w-4xl"
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-semibold mb-1">Price Alerts</h1>
-          <p className="text-xs linear-text">Get notified when prices hit targets</p>
+          <p className="text-xs text-secondary">Get notified when prices hit your targets</p>
         </div>
         
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={() => setShowAddForm(!showAddForm)}
-          className="flex items-center space-x-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-medium transition-colors"
+          className="flex items-center space-x-2 linear-button-primary"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New Alert</span>
-        </button>
+        </motion.button>
       </div>
 
       {/* Add Form */}
       <AnimatePresence>
         {showAddForm && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="linear-card rounded-lg p-4 mb-6"
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 24 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            className="linear-card rounded-lg p-4 overflow-hidden"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Create Alert</h3>
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="p-1 linear-hover rounded"
-              >
+              <button onClick={() => setShowAddForm(false)} className="p-1 hover:bg-white/[0.06] rounded">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -96,13 +109,14 @@ const Alerts = () => {
             {/* Search */}
             {!selectedCoin && (
               <div className="relative mb-3">
-                <Search className="absolute left-3 top-2.5 w-4 h-4 linear-text" />
+                <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search coin..."
-                  className="w-full pl-9 pr-3 py-2 linear-card rounded-md text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="linear-input w-full pl-9"
+                  autoFocus
                 />
               </div>
             )}
@@ -111,36 +125,38 @@ const Alerts = () => {
             {searchQuery && !selectedCoin && (
               <div className="mb-3 max-h-48 overflow-y-auto space-y-1">
                 {filteredCoins.map(coin => (
-                  <button
+                  <motion.button
                     key={coin.id}
+                    whileHover={{ x: 2 }}
                     onClick={() => {
                       setSelectedCoin(coin)
-                      setBuyPrice(coin.current_price.toString())
+                      setTargetPrice(coin.current_price.toString())
                       setSearchQuery('')
                     }}
-                    className="w-full flex items-center space-x-2 p-2 linear-hover rounded-md text-left"
+                    className="w-full flex items-center space-x-2.5 p-2 hover:bg-white/[0.06] rounded-md text-left"
                   >
-                    <img src={coin.image} alt={coin.name} className="w-6 h-6 rounded-full" />
+                    <img src={coin.image} alt={coin.name} className="w-7 h-7 rounded-full" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{coin.name}</p>
+                      <p className="text-[10px] text-muted">{coin.symbol.toUpperCase()}</p>
                     </div>
-                    <span className="text-xs linear-text">${coin.current_price.toFixed(2)}</span>
-                  </button>
+                    <span className="text-xs text-secondary">${coin.current_price.toFixed(2)}</span>
+                  </motion.button>
                 ))}
               </div>
             )}
 
             {/* Selected Coin */}
             {selectedCoin && (
-              <div className="linear-bg rounded-md p-3 mb-3 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <img src={selectedCoin.image} alt={selectedCoin.name} className="w-6 h-6 rounded-full" />
-                  <span className="text-xs font-medium">{selectedCoin.name}</span>
+              <div className="bg-white/[0.03] rounded-lg p-3 mb-3 flex items-center justify-between">
+                <div className="flex items-center space-x-2.5">
+                  <img src={selectedCoin.image} alt={selectedCoin.name} className="w-7 h-7 rounded-full" />
+                  <div>
+                    <p className="text-xs font-medium">{selectedCoin.name}</p>
+                    <p className="text-[10px] text-muted">Current: ${selectedCoin.current_price.toFixed(2)}</p>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setSelectedCoin(null)}
-                  className="text-xs linear-text hover:text-gray-200"
-                >
+                <button onClick={() => setSelectedCoin(null)} className="text-xs text-secondary hover:text-primary">
                   Change
                 </button>
               </div>
@@ -150,25 +166,25 @@ const Alerts = () => {
             <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 onClick={() => setAlertType('above')}
-                className={`flex items-center justify-center space-x-1.5 py-2 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   alertType === 'above'
-                    ? 'bg-green-500/20 text-green-500 border border-green-500/30'
-                    : 'linear-card linear-text'
+                    ? 'bg-accent-green/10 text-accent-green border border-accent-green/20'
+                    : 'linear-card text-secondary'
                 }`}
               >
                 <TrendingUp className="w-3.5 h-3.5" />
-                <span>Above</span>
+                <span>Price Above</span>
               </button>
               <button
                 onClick={() => setAlertType('below')}
-                className={`flex items-center justify-center space-x-1.5 py-2 rounded-md text-xs font-medium transition-colors ${
+                className={`flex items-center justify-center space-x-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                   alertType === 'below'
-                    ? 'bg-red-500/20 text-red-500 border border-red-500/30'
-                    : 'linear-card linear-text'
+                    ? 'bg-accent-red/10 text-accent-red border border-accent-red/20'
+                    : 'linear-card text-secondary'
                 }`}
               >
                 <TrendingDown className="w-3.5 h-3.5" />
-                <span>Below</span>
+                <span>Price Below</span>
               </button>
             </div>
 
@@ -179,14 +195,14 @@ const Alerts = () => {
               onChange={(e) => setTargetPrice(e.target.value)}
               placeholder="Target price (USD)"
               step="0.01"
-              className="w-full px-3 py-2 linear-card rounded-md text-xs mb-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="linear-input w-full mb-3"
             />
 
             {/* Submit */}
             <button
               onClick={handleAddAlert}
               disabled={!selectedCoin || !targetPrice}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-md text-xs font-medium transition-colors"
+              className="linear-button-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Alert
             </button>
@@ -197,9 +213,10 @@ const Alerts = () => {
       {/* Alerts List */}
       <div className="space-y-2">
         {alerts.length === 0 ? (
-          <div className="linear-card rounded-lg p-12 text-center">
-            <Bell className="w-8 h-8 mx-auto mb-2 linear-text" />
-            <p className="text-xs linear-text">No alerts created yet</p>
+          <div className="linear-card rounded-lg p-16 text-center">
+            <Bell className="w-10 h-10 mx-auto mb-3 text-muted" />
+            <p className="text-sm font-medium mb-1">No alerts yet</p>
+            <p className="text-xs text-secondary">Create your first price alert</p>
           </div>
         ) : (
           alerts.map((alert, index) => (
@@ -213,7 +230,7 @@ const Alerts = () => {
           ))
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -225,19 +242,19 @@ function AlertCard({ alert, index, onRemove, currentPrice }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay: index * 0.03 }}
-      className={`linear-card rounded-lg p-3 ${isTriggered ? 'ring-1 ring-green-500' : ''}`}
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className={`linear-card rounded-lg p-3 ${isTriggered ? 'ring-1 ring-accent-green' : ''}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3 flex-1 min-w-0">
-          <img src={alert.coinImage} alt={alert.coinName} className="w-8 h-8 rounded-full flex-shrink-0" />
+          <img src={alert.coinImage} alt={alert.coinName} className="w-9 h-9 rounded-full flex-shrink-0" />
           
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{alert.coinName}</p>
-            <div className="flex items-center space-x-2 text-xs linear-text">
-              <span className={`${alert.type === 'above' ? 'text-green-500' : 'text-red-500'}`}>
+            <div className="flex items-center space-x-2 text-xs text-secondary mt-0.5">
+              <span className={`${alert.type === 'above' ? 'text-accent-green' : 'text-accent-red'}`}>
                 {alert.type === 'above' ? '↑' : '↓'} ${alert.targetPrice.toFixed(2)}
               </span>
               {currentPrice && (
@@ -249,19 +266,27 @@ function AlertCard({ alert, index, onRemove, currentPrice }) {
               {isTriggered && (
                 <>
                   <span>•</span>
-                  <span className="text-green-500 font-medium">Triggered</span>
+                  <motion.span 
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                    className="text-accent-green font-medium"
+                  >
+                    Triggered!
+                  </motion.span>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
           onClick={() => onRemove(alert.id)}
-          className="p-1.5 linear-hover rounded text-red-400 hover:text-red-300 flex-shrink-0"
+          className="p-2 hover:bg-accent-red/10 rounded text-accent-red flex-shrink-0"
         >
           <Trash2 className="w-4 h-4" />
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   )
