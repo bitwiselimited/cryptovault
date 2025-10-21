@@ -81,19 +81,6 @@ function App() {
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px',
                 fontSize: '13px',
-                padding: '12px 16px',
-              },
-              success: {
-                iconTheme: {
-                  primary: '#00D084',
-                  secondary: '#0A0B0F',
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: '#F87171',
-                  secondary: '#0A0B0F',
-                },
               },
             }}
           />
