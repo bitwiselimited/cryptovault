@@ -13,7 +13,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.011em;
-  overflow-x: hidden;
 }
 
 body.dark {
@@ -28,7 +27,6 @@ body.light {
 
 ::-webkit-scrollbar {
   width: 6px;
-  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -38,10 +36,6 @@ body.light {
 ::-webkit-scrollbar-thumb {
   background: rgba(148, 163, 184, 0.2);
   border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.3);
 }
 
 @layer components {
@@ -71,17 +65,15 @@ body.light {
     @apply bg-white border-black/[0.08];
   }
   
-  .linear-button {
+  .linear-button-primary {
     @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply bg-accent-blue hover:bg-accent-blue/90 text-white;
     @apply hover:scale-[1.02] active:scale-[0.98];
   }
   
-  .linear-button-primary {
-    @apply linear-button bg-accent-blue hover:bg-accent-blue/90 text-white;
-  }
-  
   .linear-button-ghost {
-    @apply linear-button bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08];
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200;
+    @apply bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08];
   }
   
   .light .linear-button-ghost {
@@ -110,14 +102,4 @@ body.light {
   .text-muted {
     @apply text-gray-500 dark:text-gray-500;
   }
-}
-
-/* Custom Animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-.float-animation {
-  animation: float 3s ease-in-out infinite;
 }
